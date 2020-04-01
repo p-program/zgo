@@ -332,7 +332,7 @@ func TestTruncateRound(t *testing.T) {
 	// divisors of Second
 	f1 := func(ti int64, tns int32, logdi int32) bool {
 		d := Duration(1)
-		a, b := uint(logdi%9), (logdi>>16)%9
+		a, b := uint(logdi%9), logdi>>16%9
 		d <<= a
 		for i := 0; i < int(b); i++ {
 			d *= 5
@@ -1250,7 +1250,7 @@ var defaultLocTests = []struct {
 	{"Truncate", func(t1, t2 Time) bool { return t1.Truncate(Hour).Equal(t2.Truncate(Hour)) }},
 	{"Round", func(t1, t2 Time) bool { return t1.Round(Hour).Equal(t2.Round(Hour)) }},
 
-	{"== Time{}", func(t1, t2 Time) bool { return (t1 == Time{}) == (t2 == Time{}) }},
+	{"== Time{}", func(t1, t2 Time) bool { return t1 == Time{} == (t2 == Time{}) }},
 }
 
 func TestDefaultLoc(t *testing.T) {

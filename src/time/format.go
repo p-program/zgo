@@ -151,72 +151,58 @@ func startsWithLowerCase(str string) bool {
 func nextStdChunk(layout string) (prefix string, std int, suffix string) {
 	for i := 0; i < len(layout); i++ {
 		switch c := int(layout[i]); c {
-		case 'J': // January, Jan
-			if len(layout) >= i+3 && layout[i:i+3] == "Jan" {
-				if len(layout) >= i+7 && layout[i:i+7] == "January" {
-					return layout[0:i], stdLongMonth, layout[i+7:]
-				}
-				if !startsWithLowerCase(layout[i+3:]) {
-					return layout[0:i], stdMonth, layout[i+3:]
-				}
-			}
 
-		case 'M': // Monday, Mon, MST
-			if len(layout) >= i+3 {
-				if layout[i:i+3] == "Mon" {
-					if len(layout) >= i+6 && layout[i:i+6] == "Monday" {
-						return layout[0:i], stdLongWeekDay, layout[i+6:]
-					}
-					if !startsWithLowerCase(layout[i+3:]) {
-						return layout[0:i], stdWeekDay, layout[i+3:]
-					}
-				}
-				if layout[i:i+3] == "MST" {
-					return layout[0:i], stdTZ, layout[i+3:]
-				}
+		case 'Y', 'y': // year
+			if layout[i:i+2] == "yy" { //short year
+				return layout[0 : i+2], stdYear, layout[i+2:]
 			}
+			return layout[0:i], stdLongYear, layout[i+4:]
 
-		case '0': // 01, 02, 03, 04, 05, 06, 002
-			if len(layout) >= i+2 && '1' <= layout[i+1] && layout[i+1] <= '6' {
-				return layout[0:i], std0x[layout[i+1]-'1'], layout[i+2:]
+		case 'M': // month & old implement
+			if layout[i:i+5] == "Month" {
+				return layout[0 : i+5], stdLongMonth, layout[i+5:]
 			}
-			if len(layout) >= i+3 && layout[i+1] == '0' && layout[i+2] == '2' {
-				return layout[0:i], stdZeroYearDay, layout[i+3:]
+			if layout[i:i+2] == "MM" {
+				return layout[0 : i+2], stdMonth, layout[i+2:]
 			}
+			if len(layout) >= i+6 && layout[i:i+6] == "Monday" {
+				return layout[0:i], stdLongWeekDay, layout[i+6:]
+			}
+			if layout[i:i+3] == "Mon" {					
+				return layout[0:i], stdWeekDay, layout[i+3:]
+			}
+			if layout[i:i+3] == "MST" {
+				return layout[0:i], stdTZ, layout[i+3:]
+			}			
+			return layout[0 : i+1], stdZeroMonth, layout[i+1:]
 
-		case '1': // 15, 1
-			if len(layout) >= i+2 && layout[i+1] == '5' {
-				return layout[0:i], stdHour, layout[i+2:]
-			}
+		case '1': // number month
 			return layout[0:i], stdNumMonth, layout[i+1:]
 
-		case '2': // 2006, 2
-			if len(layout) >= i+4 && layout[i:i+4] == "2006" {
-				return layout[0:i], stdLongYear, layout[i+4:]
+		case 'd': //day
+			if layout[i:i+2] == "dd" {
+				return layout[0 : i+2],stdZeroDay , layout[i+2:]
 			}
 			return layout[0:i], stdDay, layout[i+1:]
 
-		case '_': // _2, _2006, __2
-			if len(layout) >= i+2 && layout[i+1] == '2' {
-				//_2006 is really a literal _, followed by stdLongYear
-				if len(layout) >= i+5 && layout[i+1:i+5] == "2006" {
-					return layout[0 : i+1], stdLongYear, layout[i+5:]
-				}
-				return layout[0:i], stdUnderDay, layout[i+2:]
+		case 'H':
+			if layout[i:i+2]=="HH"{
+				return layout[0:i],stdHour,layout[i+2:]
 			}
-			if len(layout) >= i+3 && layout[i+1] == '_' && layout[i+2] == '2' {
-				return layout[0:i], stdUnderYearDay, layout[i+3:]
+			return layout[0:i],stdHour12,layout[i+1:]
+
+		case 'm':
+			if layout[i:i+2]=="mm"{
+				return layout[0:i],stdZeroMinute,layout[i+2:]
 			}
-
-		case '3':
-			return layout[0:i], stdHour12, layout[i+1:]
-
-		case '4':
-			return layout[0:i], stdMinute, layout[i+1:]
-
-		case '5':
-			return layout[0:i], stdSecond, layout[i+1:]
-
+				return layout[0:i],stdMinute,layout[i+1:]
+		
+		case 's':
+			if layout[i:i+2]=="ss"{
+				return layout[0:i],stdZeroSecond,layout[i+2:]
+			}
+			return layout[0:i],stdSecond,layout[i+1:]			
+		
 		case 'P': // PM
 			if len(layout) >= i+2 && layout[i+1] == 'M' {
 				return layout[0:i], stdPM, layout[i+2:]
@@ -225,8 +211,15 @@ func nextStdChunk(layout string) (prefix string, std int, suffix string) {
 		case 'p': // pm
 			if len(layout) >= i+2 && layout[i+1] == 'm' {
 				return layout[0:i], stdpm, layout[i+2:]
+			}			
+		case '_': // _2,  __2
+			if layout[i+1] == '2' {			
+				return layout[0:i], stdUnderDay, layout[i+2:]
 			}
-
+			if len(layout) >= i+3 && layout[i+1] == '_' && layout[i+2] == '2' {
+				return layout[0:i], stdUnderYearDay, layout[i+3:]
+			}
+		
 		case '-': // -070000, -07:00:00, -0700, -07:00, -07
 			if len(layout) >= i+7 && layout[i:i+7] == "-070000" {
 				return layout[0:i], stdNumSecondsTz, layout[i+7:]
@@ -243,24 +236,16 @@ func nextStdChunk(layout string) (prefix string, std int, suffix string) {
 			if len(layout) >= i+3 && layout[i:i+3] == "-07" {
 				return layout[0:i], stdNumShortTZ, layout[i+3:]
 			}
-
-		case 'Z': // Z070000, Z07:00:00, Z0700, Z07:00,
-			if len(layout) >= i+7 && layout[i:i+7] == "Z070000" {
-				return layout[0:i], stdISO8601SecondsTZ, layout[i+7:]
+		
+		case '0': // 01, 02, 03, 04, 05, 06 
+			if len(layout) >= i+2 && '1' <= layout[i+1] && layout[i+1] <= '6' {
+				return layout[0:i], std0x[layout[i+1]-'1'], layout[i+2:]
 			}
-			if len(layout) >= i+9 && layout[i:i+9] == "Z07:00:00" {
-				return layout[0:i], stdISO8601ColonSecondsTZ, layout[i+9:]
-			}
-			if len(layout) >= i+5 && layout[i:i+5] == "Z0700" {
-				return layout[0:i], stdISO8601TZ, layout[i+5:]
-			}
-			if len(layout) >= i+6 && layout[i:i+6] == "Z07:00" {
-				return layout[0:i], stdISO8601ColonTZ, layout[i+6:]
-			}
-			if len(layout) >= i+3 && layout[i:i+3] == "Z07" {
-				return layout[0:i], stdISO8601ShortTZ, layout[i+3:]
-			}
-
+			// 002
+			if len(layout) >= i+3 && layout[i+1] == '0' && layout[i+2] == '2' {
+				return layout[0:i], stdZeroYearDay, layout[i+3:]
+			}			
+	
 		case '.': // .000 or .999 - repeated digits for fractional seconds.
 			if i+1 < len(layout) && (layout[i+1] == '0' || layout[i+1] == '9') {
 				ch := layout[i+1]
@@ -278,7 +263,24 @@ func nextStdChunk(layout string) (prefix string, std int, suffix string) {
 					return layout[0:i], std, layout[j:]
 				}
 			}
-		}
+		
+
+		case 'Z': // Z070000, Z07:00:00, Z0700, Z07:00,
+			if len(layout) >= i+7 && layout[i:i+7] == "Z070000" {
+				return layout[0:i], stdISO8601SecondsTZ, layout[i+7:]
+			}
+			if len(layout) >= i+9 && layout[i:i+9] == "Z07:00:00" {
+				return layout[0:i], stdISO8601ColonSecondsTZ, layout[i+9:]
+			}
+			if len(layout) >= i+5 && layout[i:i+5] == "Z0700" {
+				return layout[0:i], stdISO8601TZ, layout[i+5:]
+			}
+			if len(layout) >= i+6 && layout[i:i+6] == "Z07:00" {
+				return layout[0:i], stdISO8601ColonTZ, layout[i+6:]
+			}
+			if len(layout) >= i+3 && layout[i:i+3] == "Z07" {
+				return layout[0:i], stdISO8601ShortTZ, layout[i+3:]
+			}		
 	}
 	return layout, 0, ""
 }

@@ -66,7 +66,7 @@ func (d *dataIO) big8() (n uint64, ok bool) {
 		d.error = true
 		return 0, false
 	}
-	return (uint64(n1) << 32) | uint64(n2), true
+	return uint64(n1)<<32 | uint64(n2), true
 }
 
 func (d *dataIO) byte() (n byte, ok bool) {

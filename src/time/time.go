@@ -1107,7 +1107,7 @@ func (t Time) Unix() int64 {
 // on the zero Time is undefined. The result does not depend on the
 // location associated with t.
 func (t Time) UnixNano() int64 {
-	return (t.unixSec())*1e9 + int64(t.nsec())
+	return t.unixSec()*1e9 + int64(t.nsec())
 }
 
 const timeBinaryVersion byte = 1
@@ -1458,10 +1458,10 @@ func div(t Time, d Duration) (qmod2 int, r Duration) {
 	default:
 		// Compute nanoseconds as 128-bit number.
 		sec := uint64(sec)
-		tmp := (sec >> 32) * 1e9
+		tmp := sec >> 32 * 1e9
 		u1 := tmp >> 32
 		u0 := tmp << 32
-		tmp = (sec & 0xFFFFFFFF) * 1e9
+		tmp = sec & 0xFFFFFFFF * 1e9
 		u0x, u0 := u0, u0+tmp
 		if u0 < u0x {
 			u1++
@@ -1493,7 +1493,7 @@ func div(t Time, d Duration) (qmod2 int, r Duration) {
 				break
 			}
 			d0 >>= 1
-			d0 |= (d1 & 1) << 63
+			d0 |= d1 & 1 << 63
 			d1 >>= 1
 		}
 		r = Duration(u0)
